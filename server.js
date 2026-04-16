@@ -12,6 +12,10 @@ const userRoutes = require('./src/routes/userRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
+});
+
 const corsOrigin = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
   : true;
