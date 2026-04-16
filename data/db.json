@@ -1,0 +1,261 @@
+{
+  "usuarios": [
+    {
+      "id": "1",
+      "email": "valentina@gmail.com",
+      "password": {
+        "salt": "863298a200a88eb47caa218bec6f6452",
+        "hash": "f6a44e33ab4fae5fa02e00b7b569a982795b35bcb55927781d6cf09a9a10ef0d8747f9e89ee44c9b76135695053bbd4f9175ecf93b7fa2acd043919a04c39dbb"
+      },
+      "nombre": "Valentina",
+      "nombreCompleto": "Valentina",
+      "genero": "femenino",
+      "rut": "11.111.111-1",
+      "sede": "Hualpén (Región del Biobío)",
+      "cargo": "Dirección y Administración",
+      "estado": "activo",
+      "rol": [
+        "admin",
+        "usuario"
+      ],
+      "fechaRegistro": "2025-01-05T10:00:00.000Z",
+      "fechaExpiracion": null
+    },
+    {
+      "id": "2",
+      "email": "jo@gmail.com",
+      "password": {
+        "salt": "3ef267a422b5afe49bb8160b69d64225",
+        "hash": "97ff8a70891b90f8f583f813f27429ecff38d0400c94810c66a934cdf38029341404ca1e54ebe3565043b2acaf809d14f2322bb3c409216328654770b8ecf005"
+      },
+      "nombre": "Josefa",
+      "nombreCompleto": "Josefa Peralta",
+      "genero": "femenino",
+      "rut": "222222222",
+      "sede": "Coyhaique (Región de Aysén)",
+      "cargo": "Terapia Ocupacional",
+      "estado": "pendiente",
+      "rol": [
+        "usuario"
+      ],
+      "fechaRegistro": "2026-03-10T09:00:00.000Z",
+      "fechaExpiracion": null
+    },
+    {
+      "id": "3",
+      "email": "roque@gmail.com",
+      "password": {
+        "salt": "745487e3ad07edb9ad8baac08500b557",
+        "hash": "4d271322a29b00bc6b6a6f9030a616b924d0c86155f5fbe29ce6bb3f7a711b0c0f1872f10f60399b4cabaa68398ba30f2f882a999b9d195a9542fe7565f2ba66"
+      },
+      "nombre": "Roque",
+      "nombreCompleto": "Roque Lafuente",
+      "genero": "masculino",
+      "rut": "217187656",
+      "sede": "Coyhaique (Región de Aysén)",
+      "cargo": "Cuidados Directos (TENS/Gerocultor)",
+      "estado": "activo",
+      "rol": [
+        "usuario",
+        "admin"
+      ],
+      "fechaRegistro": "2026-04-16T17:33:34.062Z",
+      "fechaExpiracion": null
+    },
+    {
+      "id": "4",
+      "email": "emilio@udd.cl",
+      "password": {
+        "salt": "f8227e8089a3318ec91c50b37eedc2f0",
+        "hash": "0537893a23a44d35adc3ba02b5a07337329ef954339b60e7ef81ec46040d9776108d95340311d536d00118852a43772ccf2435d9ca723e537ca91f3a2ab27e86"
+      },
+      "nombre": "emilio",
+      "nombreCompleto": "emilio Hanna",
+      "genero": "masculino",
+      "rut": "24745344K",
+      "sede": "Hualpén (Región del Biobío)",
+      "cargo": "Pendiente de asignación",
+      "estado": "activo",
+      "rol": [
+        "usuario"
+      ],
+      "fechaRegistro": "2026-04-16T18:06:24.947Z",
+      "fechaExpiracion": null
+    }
+  ],
+  "cursos": [
+    {
+      "id": "1",
+      "titulo": "Protocolo de Prevención de Caídas",
+      "imagen": "http://localhost:3000/static/course-images/curso-1-caidas.svg",
+      "progreso": 33,
+      "descripcion": "Estrategias prácticas para reducir riesgos de caídas y proteger la autonomía de personas mayores residentes en ELEAM.",
+      "instructorId": "1",
+      "alumnosInscritos": [
+        "1",
+        "2"
+      ],
+      "modulos": [
+        {
+          "tituloModulo": "Movilización Segura en Rutina Diaria",
+          "tipo": "video",
+          "contenido": "https://www.youtube.com/embed/2fcWRuIrhwg",
+          "materialDescargable": null,
+          "completado": true
+        },
+        {
+          "tituloModulo": "Adecuación del Entorno para Residentes",
+          "tipo": "lectura",
+          "contenido": "Aprenderás a identificar zonas de riesgo en habitaciones, baños y pasillos. Se revisan estándares de iluminación, barandas, suelos antideslizantes y señalética para favorecer la seguridad y el bienestar integral de los residentes.",
+          "materialDescargable": null,
+          "completado": false
+        },
+        {
+          "tituloModulo": "Evaluación de Riesgo de Caídas",
+          "tipo": "quiz",
+          "contenido": "Caso clínico: residente con inestabilidad al caminar. Selecciona medidas preventivas correctas y define plan de seguimiento semanal.",
+          "materialDescargable": null,
+          "completado": false
+        },
+        {
+          "tituloModulo": "fdfdfgdfg",
+          "tipo": "lectura",
+          "contenido": "fdvdfgdfgdfgdfg"
+        },
+        {
+          "tituloModulo": "vvvvv",
+          "tipo": "quiz",
+          "contenido": ""
+        },
+        {
+          "tituloModulo": "Practica Presencial Obligatoria",
+          "tipo": "practica_presencial",
+          "contenido": "Se le ha notificado a tu instructor que has finalizado la parte teórica. Por favor, espera a ser contactado para coordinar tu evaluación práctica presencial"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "titulo": "Administración y Registro de Medicamentos",
+      "imagen": "http://localhost:3000/static/course-images/curso-2-medicamentos.svg",
+      "progreso": 67,
+      "descripcion": "Procedimientos para la administración responsable de fármacos y registro clínico oportuno enfocado en seguridad del residente.",
+      "instructorId": "1",
+      "alumnosInscritos": [
+        "2",
+        "1",
+        "4"
+      ],
+      "modulos": [
+        {
+          "tituloModulo": "Regla de los 10 Correctos en Medicación",
+          "tipo": "video",
+          "contenido": "https://www.youtube.com/embed/cm7GexPKNOc",
+          "materialDescargable": null,
+          "completado": true
+        },
+        {
+          "tituloModulo": "Registro en Ficha Clínica y Trazabilidad",
+          "tipo": "lectura",
+          "contenido": {
+            "instrucciones": "Se explican buenas prácticas para registrar hora, dosis, vía de administración y observaciones posteriores. Un registro claro mejora continuidad de cuidados y disminuye eventos adversos en residentes mayores."
+          },
+          "materialDescargable": null,
+          "completado": true
+        },
+        {
+          "tituloModulo": "Errores Frecuentes y Prevención",
+          "tipo": "quiz",
+          "contenido": [
+            {
+              "tipo": "respuesta_escrita",
+              "pregunta": "¿Cuál es el error mas frecuente que se debe prevenir? Responde con tus palabras."
+            }
+          ],
+          "materialDescargable": null,
+          "completado": false
+        },
+        {
+          "tituloModulo": "leer",
+          "tipo": "lectura",
+          "contenido": {
+            "archivoNombre": "BPMN_ONG.pdf"
+          }
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "titulo": "Higiene y Control de Infecciones",
+      "imagen": "/static/course-images/curso-3-higiene.svg",
+      "progreso": 0,
+      "descripcion": "Protocolos esenciales de higiene para prevenir infecciones y asegurar ambientes saludables en residencias de larga estadía.",
+      "instructorId": "1",
+      "alumnosInscritos": [
+        "1",
+        "4"
+      ],
+      "modulos": [
+        {
+          "tituloModulo": "Lavado de Manos Clínico Paso a Paso",
+          "tipo": "video",
+          "contenido": "https://www.youtube.com/embed/IisgnbMfKvI",
+          "materialDescargable": null,
+          "completado": false
+        },
+        {
+          "tituloModulo": "Manejo de Residuos y EPP",
+          "tipo": "lectura",
+          "contenido": "Describe segregación de residuos, uso correcto de elementos de protección personal y rutas de desecho seguro. Estas medidas disminuyen transmisión cruzada y protegen tanto a residentes como al equipo de cuidado.",
+          "materialDescargable": null,
+          "completado": false
+        },
+        {
+          "tituloModulo": "Limpieza de Áreas Comunes",
+          "tipo": "quiz",
+          "contenido": "Ordena correctamente el flujo de limpieza y desinfección de comedor, pasillos y salas de estar para reducir brotes intrarresidencia.",
+          "materialDescargable": null,
+          "completado": false
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "titulo": "Primeros Auxilios en el Adulto Mayor",
+      "imagen": "/static/course-images/curso-4-primeros-auxilios.svg",
+      "progreso": 0,
+      "descripcion": "Reconocimiento temprano y respuesta inicial ante emergencias frecuentes en personas mayores residentes.",
+      "instructorId": "1",
+      "alumnosInscritos": [
+        "2"
+      ],
+      "modulos": [
+        {
+          "tituloModulo": "Signos de Alerta y Derivación",
+          "tipo": "lectura",
+          "contenido": "Identifica signos clínicos que requieren derivación oportuna, priorizando seguridad y tiempos de respuesta.",
+          "materialDescargable": null,
+          "completado": false
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "titulo": "Trato Digno y Ética en el Cuidado",
+      "imagen": "/static/course-images/curso-5-trato-digno.svg",
+      "progreso": 0,
+      "descripcion": "Fortalece la comunicación respetuosa, el enfoque centrado en la persona y la autonomía en el cuidado diario.",
+      "instructorId": "1",
+      "alumnosInscritos": [],
+      "modulos": [
+        {
+          "tituloModulo": "Comunicación Afectiva con Residentes",
+          "tipo": "lectura",
+          "contenido": "Herramientas para conversaciones empáticas, escucha activa y resolución de conflictos cotidianos.",
+          "materialDescargable": null,
+          "completado": false
+        }
+      ]
+    }
+  ]
+}

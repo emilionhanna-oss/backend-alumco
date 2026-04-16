@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-label="Administración de medicamentos">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1a2840"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#93c5fd"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#bg)"/>
+
+  <!-- icon: pill + clipboard -->
+  <g transform="translate(130,120)">
+    <!-- clipboard -->
+    <rect x="70" y="40" width="280" height="340" rx="24" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.25)" stroke-width="4"/>
+    <rect x="150" y="20" width="120" height="50" rx="14" fill="rgba(255,255,255,0.16)"/>
+    <path d="M110 120 H310" stroke="rgba(255,255,255,0.30)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M110 170 H290" stroke="rgba(255,255,255,0.22)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M110 220 H300" stroke="rgba(255,255,255,0.22)" stroke-width="8" stroke-linecap="round"/>
+
+    <!-- pill -->
+    <g transform="translate(40,260) rotate(-18)">
+      <rect x="210" y="-30" width="210" height="90" rx="45" fill="url(#accent)"/>
+      <path d="M315 -30 V60" stroke="rgba(255,255,255,0.7)" stroke-width="6"/>
+      <rect x="210" y="-30" width="105" height="90" rx="45" fill="rgba(255,255,255,0.18)"/>
+    </g>
+  </g>
+
+  <g fill="#ffffff">
+    <text x="520" y="230" font-size="44" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" font-weight="800">Medicamentos</text>
+    <text x="520" y="285" font-size="22" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" opacity="0.85">Administración segura • registro clínico • trazabilidad</text>
+  </g>
+</svg>

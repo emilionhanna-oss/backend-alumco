@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-label="Higiene y control de infecciones">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1a2840"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#bg)"/>
+
+  <!-- icon: hand + droplet -->
+  <g transform="translate(140,130)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M180 260 V140" stroke="rgba(255,255,255,0.55)" stroke-width="14"/>
+    <path d="M220 260 V120" stroke="rgba(255,255,255,0.55)" stroke-width="14"/>
+    <path d="M260 260 V140" stroke="rgba(255,255,255,0.55)" stroke-width="14"/>
+    <path d="M300 260 V160" stroke="rgba(255,255,255,0.55)" stroke-width="14"/>
+
+    <path d="M150 270 C150 220 195 215 215 235 C225 210 270 210 285 235 C305 215 350 220 350 270 V320 C350 360 320 390 280 390 H220 C180 390 150 360 150 320 Z" stroke="rgba(255,255,255,0.35)" stroke-width="10" fill="rgba(255,255,255,0.10)"/>
+
+    <path d="M380 90 C380 60 405 42 420 20 C435 42 460 60 460 90 C460 118 443 140 420 140 C397 140 380 118 380 90 Z" fill="url(#accent)" stroke="rgba(255,255,255,0.25)" stroke-width="4"/>
+  </g>
+
+  <g fill="#ffffff">
+    <text x="520" y="230" font-size="44" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" font-weight="800">Higiene e Infecciones</text>
+    <text x="520" y="285" font-size="22" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" opacity="0.85">Lavado de manos • EPP • ambientes seguros</text>
+  </g>
+</svg>

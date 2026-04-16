@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-label="Prevención de caídas">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1a2840"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#bg)"/>
+
+  <!-- decorative stripes -->
+  <path d="M-80 520 C 180 380, 420 420, 680 280 S 1140 180, 1320 20" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="18"/>
+  <path d="M-60 560 C 220 420, 460 460, 720 320 S 1180 220, 1360 60" fill="none" stroke="rgba(37,99,235,0.25)" stroke-width="10"/>
+
+  <!-- icon: shield + cane -->
+  <g transform="translate(120,110)">
+    <path d="M220 30 L360 70 V180 C360 270 300 330 220 360 C140 330 80 270 80 180 V70 Z" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.25)" stroke-width="4"/>
+
+    <!-- cane -->
+    <path d="M260 90 C260 65 242 50 220 50 C198 50 180 65 180 90" fill="none" stroke="url(#accent)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M180 90 V250" fill="none" stroke="url(#accent)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M180 250 C180 285 160 305 125 305" fill="none" stroke="url(#accent)" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="120" cy="305" r="10" fill="#ffffff" opacity="0.85"/>
+  </g>
+
+  <!-- text -->
+  <g fill="#ffffff">
+    <text x="520" y="230" font-size="44" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" font-weight="800">Prevención de Caídas</text>
+    <text x="520" y="285" font-size="22" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial" opacity="0.85">Movilización segura • entorno protegido • autonomía</text>
+  </g>
+</svg>
