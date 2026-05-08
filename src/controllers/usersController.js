@@ -1,39 +1,17 @@
-const fs = require('fs/promises');
-const path = require('path');
+// src/controllers/usersController.js
+const db = require('../db');
 const { isRutValid, normalizeRutForStorage } = require('../utils/rutUtils');
 
-const DB_PATH = path.join(__dirname, '..', '..', 'data', 'db.json');
 const VALID_USER_STATES = new Set(['pendiente', 'activo', 'vencido']);
-const VALID_ROLES = new Set(['admin', 'profesor', 'usuario']);
-const VALID_SEDES = new Set([
-  'Hualpén (Región del Biobío)',
-  'Coyhaique (Región de Aysén)',
+const VALID_ROLES       = new Set(['admin', 'profesor', 'usuario']);
+const VALID_SEDES       = new Set(['Hualpen (Region del Biobio)', 'Coyhaique (Region de Aysen)']);
+const VALID_CARGOS      = new Set([
+  'Pendiente de asignacion', 'Direccion y Administracion', 'Enfermeria',
+  'Cuidados Directos (TENS/Gerocultor)', 'Kinesiologia y Rehabilitacion',
+  'Terapia Ocupacional', 'Psicologia', 'Trabajo Social', 'Nutricion y Alimentacion',
+  'Recreacion y Actividades', 'Aseo e Higiene', 'Lavanderia y Roperia',
+  'Mantencion y Servicios Generales', 'Cocina',
 ]);
-const VALID_CARGOS = new Set([
-  'Pendiente de asignación',
-  'Dirección y Administración',
-  'Enfermería',
-  'Cuidados Directos (TENS/Gerocultor)',
-  'Kinesiología y Rehabilitación',
-  'Terapia Ocupacional',
-  'Psicología',
-  'Trabajo Social',
-  'Nutrición y Alimentación',
-  'Recreación y Actividades',
-  'Aseo e Higiene',
-  'Lavandería y Ropería',
-  'Mantención y Servicios Generales',
-  'Cocina',
-]);
-
-async function readDb() {
-  const raw = await fs.readFile(DB_PATH, 'utf-8');
-  return JSON.parse(raw);
-}
-
-async function writeDb(db) {
-  await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2) + '\n', 'utf-8');
-}
 
 function asTrimmedString(value) {
   return typeof value === 'string' ? value.trim() : undefined;
@@ -41,121 +19,85 @@ function asTrimmedString(value) {
 
 function normalizeRoles(raw) {
   if (Array.isArray(raw)) {
-    const cleaned = raw
-      .map((r) => String(r || '').trim().toLowerCase())
-      .filter((r) => VALID_ROLES.has(r));
-
+    const cleaned = raw.map((r) => String(r || '').trim().toLowerCase()).filter((r) => VALID_ROLES.has(r));
     return cleaned.length > 0 ? Array.from(new Set(cleaned)) : ['usuario'];
   }
-
   if (raw === undefined || raw === null) return ['usuario'];
-
   const role = String(raw).trim().toLowerCase();
   return VALID_ROLES.has(role) ? [role] : ['usuario'];
+}
+
+function isExpiredDate(f) {
+  if (!f) return false;
+  const p = new Date(f);
+  return !Number.isNaN(p.getTime()) && p.getTime() <= Date.now();
+}
+
+function normalizeEstado(rawEstado, fechaExpiracion) {
+  const base = VALID_USER_STATES.has(String(rawEstado || '').trim().toLowerCase())
+    ? String(rawEstado).trim().toLowerCase() : 'activo';
+  return isExpiredDate(fechaExpiracion) ? 'vencido' : base;
 }
 
 function parseFechaExpiracion(raw) {
   if (raw === undefined) return undefined;
   if (raw === null) return null;
   if (typeof raw !== 'string') return 'invalid';
-
   const trimmed = raw.trim();
   if (!trimmed) return null;
-
   const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) return 'invalid';
   return parsed.toISOString();
 }
 
-function isExpiredDate(fechaExpiracion) {
-  if (!fechaExpiracion) return false;
-  const parsed = new Date(fechaExpiracion);
-  if (Number.isNaN(parsed.getTime())) return false;
-  return parsed.getTime() <= Date.now();
+async function getRolesForUser(userId) {
+  const result = await db.query('SELECT rol FROM usuario_roles WHERE usuario_id = $1', [userId]);
+  return result.rows.map((r) => r.rol);
 }
 
-function normalizeEstado(rawEstado, fechaExpiracion) {
-  const fromRaw = String(rawEstado || '').trim().toLowerCase();
-  const base = VALID_USER_STATES.has(fromRaw) ? fromRaw : 'activo';
-  if (isExpiredDate(fechaExpiracion)) return 'vencido';
-  return base;
-}
-
-function sanitizeUserForResponse(u) {
+function buildUserResponse(u, roles, sedeNombre) {
   return {
-    id: u?.id !== undefined ? String(u.id) : undefined,
-    email: u?.email,
-    nombre: u?.nombre,
-    nombreCompleto: u?.nombreCompleto,
-    genero: u?.genero,
-    rut: u?.rut,
-    sede: u?.sede,
-    cargo: u?.cargo,
-    estado: u?.estado,
-    rol: normalizeRoles(u?.rol),
-    fechaRegistro: u?.fechaRegistro || null,
-    fechaExpiracion: u?.fechaExpiracion ?? null,
-    firmaTexto: u?.firmaTexto,
-    firmaImagenDataUrl: u?.firmaImagenDataUrl,
+    id:              String(u.id),
+    email:           u.email,
+    nombre:          u.nombre,
+    nombreCompleto:  u.nombre_completo,
+    genero:          u.genero,
+    rut:             u.rut,
+    sede:            sedeNombre || null,
+    cargo:           u.cargo,
+    estado:          u.estado,
+    rol:             roles,
+    fechaRegistro:   u.fecha_registro   ? new Date(u.fecha_registro).toISOString()   : null,
+    fechaExpiracion: u.fecha_expiracion ? new Date(u.fecha_expiracion).toISOString() : null,
+    firmaTexto:         u.firma_texto            || undefined,
+    firmaImagenDataUrl: u.firma_imagen_data_url  || undefined,
   };
-}
-
-function synchronizeExpiredUsers(usuarios) {
-  let changed = false;
-
-  const next = usuarios.map((u) => {
-    const fechaExpiracion = u?.fechaExpiracion ?? null;
-    const shouldExpire = isExpiredDate(fechaExpiracion);
-    const normalizedRole = normalizeRoles(u?.rol);
-    const normalizedRut = normalizeRutForStorage(u?.rut);
-    const normalizedEstado = shouldExpire
-      ? 'vencido'
-      : normalizeEstado(u?.estado, fechaExpiracion);
-
-    const candidate = {
-      ...u,
-      rut: normalizedRut,
-      rol: normalizedRole,
-      estado: normalizedEstado,
-      fechaRegistro: u?.fechaRegistro || new Date().toISOString(),
-      fechaExpiracion,
-    };
-
-    const before = JSON.stringify({
-      rol: u?.rol,
-      estado: u?.estado,
-      fechaRegistro: u?.fechaRegistro,
-      fechaExpiracion: u?.fechaExpiracion,
-    });
-    const after = JSON.stringify({
-      rol: candidate.rol,
-      estado: candidate.estado,
-      fechaRegistro: candidate.fechaRegistro,
-      fechaExpiracion: candidate.fechaExpiracion,
-    });
-
-    if (before !== after) changed = true;
-    return candidate;
-  });
-
-  return { changed, usuarios: next };
 }
 
 const listarUsuarios = async (req, res) => {
   try {
-    const db = await readDb();
-    const usuarios = Array.isArray(db?.usuarios) ? db.usuarios : [];
+    const result = await db.query(
+      `SELECT u.*, s.nombre AS sede_nombre
+       FROM usuarios u
+       LEFT JOIN sedes s ON s.id = u.sede_id
+       ORDER BY u.fecha_registro DESC`
+    );
 
-    const synced = synchronizeExpiredUsers(usuarios);
-    if (synced.changed) {
-      await writeDb({ ...db, usuarios: synced.usuarios });
-    }
+    // Sincronizar vencidos
+    const toUpdate = result.rows.filter((u) => isExpiredDate(u.fecha_expiracion) && u.estado !== 'vencido');
+    await Promise.all(toUpdate.map((u) =>
+      db.query('UPDATE usuarios SET estado = $1 WHERE id = $2', ['vencido', u.id])
+    ));
 
-    const sanitized = synced.usuarios.map(sanitizeUserForResponse);
+    const users = await Promise.all(result.rows.map(async (u) => {
+      const roles  = await getRolesForUser(u.id);
+      const estado = isExpiredDate(u.fecha_expiracion) ? 'vencido' : u.estado;
+      return buildUserResponse({ ...u, estado }, roles, u.sede_nombre);
+    }));
 
-    return res.status(200).json(sanitized);
+    return res.status(200).json(users);
   } catch (error) {
-    console.error('Error al leer usuarios:', error);
+    console.error('Error al listar usuarios:', error);
     return res.status(500).json({ mensaje: 'No se pudieron obtener los usuarios' });
   }
 };
@@ -163,98 +105,94 @@ const listarUsuarios = async (req, res) => {
 const actualizarUsuario = async (req, res) => {
   try {
     const userId = String(req.params?.id || '');
-    if (!userId) {
-      return res.status(400).json({ mensaje: 'ID de usuario inválido' });
-    }
+    if (!userId) return res.status(400).json({ mensaje: 'ID de usuario invalido' });
 
-    const db = await readDb();
-    const usuarios = Array.isArray(db?.usuarios) ? db.usuarios : [];
-
-    const idx = usuarios.findIndex((u) => String(u?.id) === userId);
-    if (idx === -1) {
-      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
-    }
+    const userResult = await db.query(
+      `SELECT u.*, s.nombre AS sede_nombre FROM usuarios u
+       LEFT JOIN sedes s ON s.id = u.sede_id WHERE u.id = $1`,
+      [userId]
+    );
+    if (userResult.rows.length === 0) return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    const user = userResult.rows[0];
 
     const payload = req.body || {};
-    const current = usuarios[idx];
-    const next = { ...current };
+    const rutRaw  = payload?.rut;
+    const rut     = rutRaw === undefined ? undefined : normalizeRutForStorage(rutRaw);
 
-    const nombre = asTrimmedString(payload?.nombre);
-    const nombreCompleto = asTrimmedString(payload?.nombreCompleto);
-    const rutRaw = payload?.rut;
-    const sede = asTrimmedString(payload?.sede);
+    if (rutRaw !== undefined && (!rut || !isRutValid(rut)))
+      return res.status(400).json({ mensaje: 'RUT invalido' });
+
+    const sede  = asTrimmedString(payload?.sede);
     const cargo = asTrimmedString(payload?.cargo);
-    const email = asTrimmedString(payload?.email);
-    const rut = rutRaw === undefined ? undefined : normalizeRutForStorage(rutRaw);
 
-    if (rutRaw !== undefined && (!rut || !isRutValid(rut))) {
-      return res.status(400).json({ mensaje: 'RUT inválido' });
+    if (sede  !== undefined && !VALID_SEDES.has(sede))   return res.status(400).json({ mensaje: 'Sede invalida' });
+    if (cargo !== undefined && !VALID_CARGOS.has(cargo)) return res.status(400).json({ mensaje: 'Cargo invalido' });
+
+    const parsedFecha = parseFechaExpiracion(payload?.fechaExpiracion);
+    if (parsedFecha === 'invalid') return res.status(400).json({ mensaje: 'fechaExpiracion debe ser ISO date o null' });
+
+    const fields = [];
+    const values = [];
+    let   paramIdx = 1;
+
+    const nombre         = asTrimmedString(payload?.nombre);
+    const nombreCompleto = asTrimmedString(payload?.nombreCompleto);
+    const email          = asTrimmedString(payload?.email);
+
+    if (nombre         !== undefined) { fields.push(`nombre = $${paramIdx++}`);          values.push(nombre); }
+    if (nombreCompleto !== undefined) { fields.push(`nombre_completo = $${paramIdx++}`); values.push(nombreCompleto); }
+    if (rut            !== undefined) { fields.push(`rut = $${paramIdx++}`);             values.push(rut); }
+    if (email          !== undefined) { fields.push(`email = $${paramIdx++}`);           values.push(email.toLowerCase()); }
+    if (cargo          !== undefined) { fields.push(`cargo = $${paramIdx++}`);           values.push(cargo); }
+
+    if (sede !== undefined) {
+      const sedeResult = await db.query('SELECT id FROM sedes WHERE nombre = $1', [sede]);
+      if (sedeResult.rows.length === 0) return res.status(400).json({ mensaje: 'Sede no encontrada' });
+      fields.push(`sede_id = $${paramIdx++}`);
+      values.push(sedeResult.rows[0].id);
     }
 
-    if (sede !== undefined && !VALID_SEDES.has(sede)) {
-      return res.status(400).json({
-        mensaje: 'sede inválida. Usa Hualpén (Región del Biobío) o Coyhaique (Región de Aysén)',
-      });
-    }
+    if (parsedFecha !== undefined) { fields.push(`fecha_expiracion = $${paramIdx++}`); values.push(parsedFecha); }
 
-    if (cargo !== undefined && !VALID_CARGOS.has(cargo)) {
-      return res.status(400).json({ mensaje: 'cargo inválido para el catálogo de áreas.' });
-    }
+    const fechaParaEstado     = parsedFecha !== undefined ? parsedFecha : user.fecha_expiracion;
+    const requestedEstado     = asTrimmedString(payload?.estado)?.toLowerCase();
+    const currentEstado       = String(user.estado || '').toLowerCase();
+    let   nuevoEstado;
 
-    if (nombre !== undefined) next.nombre = nombre;
-    if (nombreCompleto !== undefined) next.nombreCompleto = nombreCompleto;
-    if (rut !== undefined) next.rut = rut;
-    if (sede !== undefined) next.sede = sede;
-    if (cargo !== undefined) next.cargo = cargo;
-    if (email !== undefined) next.email = email.toLowerCase();
+    if (currentEstado === 'pendiente')                    nuevoEstado = 'activo';
+    else if (requestedEstado) {
+      if (!VALID_USER_STATES.has(requestedEstado)) return res.status(400).json({ mensaje: 'estado invalido' });
+      nuevoEstado = requestedEstado;
+    } else nuevoEstado = normalizeEstado(user.estado, fechaParaEstado);
+    if (isExpiredDate(fechaParaEstado)) nuevoEstado = 'vencido';
+
+    fields.push(`estado = $${paramIdx++}`);
+    values.push(nuevoEstado);
+
+    if (fields.length > 0) {
+      values.push(userId);
+      await db.query(`UPDATE usuarios SET ${fields.join(', ')} WHERE id = $${paramIdx}`, values);
+    }
 
     if (payload?.rol !== undefined) {
-      next.rol = normalizeRoles(payload.rol);
-    } else {
-      next.rol = normalizeRoles(next.rol);
+      const newRoles = normalizeRoles(payload.rol);
+      await db.query('DELETE FROM usuario_roles WHERE usuario_id = $1', [userId]);
+      await Promise.all(newRoles.map((r) =>
+        db.query('INSERT INTO usuario_roles (usuario_id, rol) VALUES ($1,$2) ON CONFLICT DO NOTHING', [userId, r])
+      ));
     }
 
-    const parsedFechaExpiracion = parseFechaExpiracion(payload?.fechaExpiracion);
-    if (parsedFechaExpiracion === 'invalid') {
-      return res.status(400).json({ mensaje: 'fechaExpiracion debe ser ISO date o null' });
-    }
-    if (parsedFechaExpiracion !== undefined) {
-      next.fechaExpiracion = parsedFechaExpiracion;
-    } else {
-      next.fechaExpiracion = next?.fechaExpiracion ?? null;
-    }
+    const updated     = (await db.query(
+      `SELECT u.*, s.nombre AS sede_nombre FROM usuarios u
+       LEFT JOIN sedes s ON s.id = u.sede_id WHERE u.id = $1`, [userId]
+    )).rows[0];
+    const updatedRoles = await getRolesForUser(userId);
 
-    const requestedEstado = asTrimmedString(payload?.estado)?.toLowerCase();
-    const fromPendingToActive = String(current?.estado || '').toLowerCase() === 'pendiente';
-
-    if (fromPendingToActive) {
-      next.estado = 'activo';
-    } else if (requestedEstado) {
-      if (!VALID_USER_STATES.has(requestedEstado)) {
-        return res.status(400).json({ mensaje: 'estado inválido. Usa pendiente, activo o vencido' });
-      }
-      next.estado = requestedEstado;
-    } else {
-      next.estado = normalizeEstado(next?.estado, next?.fechaExpiracion);
-    }
-
-    if (isExpiredDate(next.fechaExpiracion)) {
-      next.estado = 'vencido';
-    }
-
-    next.fechaRegistro = next?.fechaRegistro || new Date().toISOString();
-
-    usuarios[idx] = next;
-    await writeDb({ ...db, usuarios });
-
-    return res.status(200).json({ success: true, usuario: sanitizeUserForResponse(next) });
+    return res.status(200).json({ success: true, usuario: buildUserResponse(updated, updatedRoles, updated.sede_nombre) });
   } catch (error) {
     console.error('Error actualizando usuario:', error);
     return res.status(500).json({ mensaje: 'No se pudo actualizar el usuario' });
   }
 };
 
-module.exports = {
-  listarUsuarios,
-  actualizarUsuario,
-};
+module.exports = { listarUsuarios, actualizarUsuario };
