@@ -1,9 +1,8 @@
+// src/middlewares/authMiddleware.js
 const jwt = require('jsonwebtoken');
-const fs = require('fs');
-const path = require('path');
+const db  = require('../db');
 
 const SECRET_KEY = process.env.JWT_SECRET || 'dev_insecure_change_me';
-const DB_PATH = path.join(__dirname, '..', '..', 'data', 'db.json');
 const VALID_ROLES = new Set(['admin', 'profesor', 'usuario']);
 
 function normalizeRoles(raw) {
@@ -11,23 +10,11 @@ function normalizeRoles(raw) {
     const cleaned = raw
       .map((r) => String(r || '').trim().toLowerCase())
       .filter((r) => VALID_ROLES.has(r));
-
     return cleaned.length > 0 ? Array.from(new Set(cleaned)) : ['usuario'];
   }
-
   if (raw === undefined || raw === null) return ['usuario'];
-
   const role = String(raw).trim().toLowerCase();
   return VALID_ROLES.has(role) ? [role] : ['usuario'];
-}
-
-function readDb() {
-  const raw = fs.readFileSync(DB_PATH, 'utf-8');
-  return JSON.parse(raw);
-}
-
-function writeDb(db) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2) + '\n', 'utf-8');
 }
 
 function isExpiredDate(fechaExpiracion) {
@@ -37,7 +24,7 @@ function isExpiredDate(fechaExpiracion) {
   return parsed.getTime() <= Date.now();
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const [scheme, token] = authHeader.split(' ');
 
@@ -48,46 +35,53 @@ function requireAuth(req, res, next) {
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
 
-    req.user = {
-      id: decoded?.id !== undefined ? String(decoded.id) : undefined,
-      rol: normalizeRoles(decoded?.rol),
-    };
+    const userId = decoded?.id !== undefined ? String(decoded.id) : undefined;
+    if (!userId) return res.status(401).json({ mensaje: 'No autorizado' });
 
-    if (!req.user.id) {
+    // Buscar usuario en PostgreSQL
+    const result = await db.query(
+      'SELECT * FROM usuarios WHERE id = $1',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
       return res.status(401).json({ mensaje: 'No autorizado' });
     }
 
-    const db = readDb();
-    const usuarios = Array.isArray(db?.usuarios) ? db.usuarios : [];
-    const idx = usuarios.findIndex((u) => String(u?.id) === String(req.user.id));
+    const current = result.rows[0];
+    const expired = isExpiredDate(current.fecha_expiracion);
 
-    if (idx === -1) {
-      return res.status(401).json({ mensaje: 'No autorizado' });
+    // Sincronizar estado vencido si corresponde
+    if (expired && current.estado !== 'vencido') {
+      await db.query('UPDATE usuarios SET estado = $1 WHERE id = $2', ['vencido', userId]);
+      current.estado = 'vencido';
     }
 
-    const current = usuarios[idx];
-    const expired = isExpiredDate(current?.fechaExpiracion);
-
-    if (expired && String(current?.estado || '').toLowerCase() !== 'vencido') {
-      usuarios[idx] = { ...current, estado: 'vencido' };
-      writeDb({ ...db, usuarios });
-    }
-
-    const effectiveState = expired ? 'vencido' : String(current?.estado || 'activo').toLowerCase();
+    const effectiveState = expired ? 'vencido' : String(current.estado || 'activo').toLowerCase();
 
     if (effectiveState === 'pendiente') {
-      return res.status(403).json({ mensaje: 'Acceso pendiente de aprobación' });
+      return res.status(403).json({ mensaje: 'Acceso pendiente de aprobacion' });
     }
 
     if (effectiveState === 'vencido') {
       return res.status(403).json({ mensaje: 'Acceso vencido' });
     }
 
-    req.user.rol = normalizeRoles(current?.rol);
+    // Obtener roles desde la tabla usuario_roles
+    const rolesResult = await db.query(
+      'SELECT rol FROM usuario_roles WHERE usuario_id = $1',
+      [userId]
+    );
+    const roles = rolesResult.rows.map((r) => r.rol);
+
+    req.user = {
+      id:  userId,
+      rol: normalizeRoles(roles),
+    };
 
     return next();
   } catch {
-    return res.status(401).json({ mensaje: 'Token inválido o expirado' });
+    return res.status(401).json({ mensaje: 'Token invalido o expirado' });
   }
 }
 
@@ -99,7 +93,4 @@ function requireAdmin(req, res, next) {
   return next();
 }
 
-module.exports = {
-  requireAuth,
-  requireAdmin,
-};
+module.exports = { requireAuth, requireAdmin };
