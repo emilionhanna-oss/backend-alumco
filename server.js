@@ -12,6 +12,19 @@ const userRoutes = require('./src/routes/userRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.get('/test-auth', async (req, res) => {
+  const authHeader = req.headers.authorization || '';
+  const [scheme, token] = authHeader.split(' ');
+  const jwt = require('jsonwebtoken');
+  const SECRET_KEY = process.env.JWT_SECRET || 'dev_insecure_change_me';
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    res.json({ ok: true, decoded });
+  } catch(e) {
+    res.json({ ok: false, error: e.message });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
 });
