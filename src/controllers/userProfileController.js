@@ -1,74 +1,63 @@
-const fs = require('fs/promises');
-const path = require('path');
+// src/controllers/userProfileController.js
+const db = require('../db');
 const { isRutValid, normalizeRutForStorage } = require('../utils/rutUtils');
-
-const DB_PATH = path.join(__dirname, '..', '..', 'data', 'db.json');
-
-async function readDb() {
-  const raw = await fs.readFile(DB_PATH, 'utf-8');
-  return JSON.parse(raw);
-}
-
-async function writeDb(db) {
-  await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2) + '\n', 'utf-8');
-}
 
 function asTrimmedString(value) {
   return typeof value === 'string' ? value.trim() : undefined;
 }
 
-function sanitizeUserForResponse(u) {
-  if (!u) return null;
-
-  const email = u?.email;
-  const name = u?.name || u?.nombreCompleto || u?.nombre || email;
-
-  return {
-    id: u?.id !== undefined ? String(u.id) : undefined,
-    email,
-    name,
-    nombre: u?.nombre,
-    nombreCompleto: u?.nombreCompleto,
-    genero: u?.genero,
-    rol: u?.rol,
-    rut: u?.rut,
-    sede: u?.sede,
-    cargo: u?.cargo,
-    estado: u?.estado,
-    fechaRegistro: u?.fechaRegistro || null,
-    fechaExpiracion: u?.fechaExpiracion ?? null,
-    firmaTexto: u?.firmaTexto,
-    firmaImagenDataUrl: u?.firmaImagenDataUrl,
-  };
-}
-
-const MAX_SIGNATURE_DATA_URL_CHARS = 350_000; // ~260KB base64 aprox (dependiendo del contenido)
+const MAX_SIGNATURE_DATA_URL_CHARS = 350_000;
 
 function sanitizeFirmaImagenDataUrl(value) {
   const v = asTrimmedString(value);
   if (!v) return undefined;
-
   if (v.length > MAX_SIGNATURE_DATA_URL_CHARS) return undefined;
-
-  // Acepta solo data URLs de imágenes para evitar XSS/schemes peligrosos.
-  // Ejemplo: data:image/png;base64,....
   if (!/^data:image\/(png|jpeg|jpg);base64,[a-z0-9+/=\s]+$/i.test(v)) return undefined;
-
   return v;
+}
+
+async function getRolesForUser(userId) {
+  const result = await db.query('SELECT rol FROM usuario_roles WHERE usuario_id = $1', [userId]);
+  return result.rows.map((r) => r.rol);
+}
+
+function sanitizeUserForResponse(u, roles, sedeNombre) {
+  if (!u) return null;
+  return {
+    id:                 String(u.id),
+    email:              u.email,
+    name:               u.nombre_completo || u.nombre || u.email,
+    nombre:             u.nombre,
+    nombreCompleto:     u.nombre_completo,
+    genero:             u.genero,
+    rol:                roles,
+    rut:                u.rut,
+    sede:               sedeNombre || null,
+    cargo:              u.cargo,
+    estado:             u.estado,
+    fechaRegistro:      u.fecha_registro   ? new Date(u.fecha_registro).toISOString()   : null,
+    fechaExpiracion:    u.fecha_expiracion ? new Date(u.fecha_expiracion).toISOString() : null,
+    firmaTexto:         u.firma_texto            || undefined,
+    firmaImagenDataUrl: u.firma_imagen_data_url  || undefined,
+  };
 }
 
 const getProfile = async (req, res) => {
   try {
-    const userId = String(req.user?.id || '');
+    const userId = req.user?.id;
     if (!userId) return res.status(401).json({ mensaje: 'No autorizado' });
 
-    const db = await readDb();
-    const usuarios = Array.isArray(db?.usuarios) ? db.usuarios : [];
+    const result = await db.query(
+      `SELECT u.*, s.nombre AS sede_nombre
+       FROM usuarios u LEFT JOIN sedes s ON s.id = u.sede_id
+       WHERE u.id = $1`,
+      [userId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ mensaje: 'Usuario no encontrado' });
 
-    const u = usuarios.find((x) => String(x?.id) === userId);
-    if (!u) return res.status(404).json({ mensaje: 'Usuario no encontrado' });
-
-    return res.status(200).json(sanitizeUserForResponse(u));
+    const user  = result.rows[0];
+    const roles = await getRolesForUser(userId);
+    return res.status(200).json(sanitizeUserForResponse(user, roles, user.sede_nombre));
   } catch (error) {
     console.error('Error obteniendo perfil:', error);
     return res.status(500).json({ mensaje: 'No se pudo obtener el perfil' });
@@ -77,79 +66,67 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const userId = String(req.user?.id || '');
+    const userId = req.user?.id;
     if (!userId) return res.status(401).json({ mensaje: 'No autorizado' });
 
-    const roles = Array.isArray(req.user?.rol) ? req.user.rol.map(String) : [];
+    const roles   = Array.isArray(req.user?.rol) ? req.user.rol.map(String) : [];
     const isAdmin = roles.includes('admin');
 
-    const {
-      nombre,
-      nombreCompleto,
-      genero,
-      rut,
-      cargo,
-      firmaTexto,
-      firmaImagenDataUrl,
-    } = req.body || {};
+    const { nombre, nombreCompleto, genero, rut, cargo, firmaTexto, firmaImagenDataUrl } = req.body || {};
 
-    const db = await readDb();
-    const usuarios = Array.isArray(db?.usuarios) ? db.usuarios : [];
-
-    const idx = usuarios.findIndex((x) => String(x?.id) === userId);
-    if (idx === -1) return res.status(404).json({ mensaje: 'Usuario no encontrado' });
-
-    const next = { ...usuarios[idx] };
-
-    const n = asTrimmedString(nombre);
-    const nc = asTrimmedString(nombreCompleto);
-    const g = asTrimmedString(genero);
-    const r = rut !== undefined ? normalizeRutForStorage(rut) : undefined;
-    const c = asTrimmedString(cargo);
-
-    if (rut !== undefined && (!r || !isRutValid(r))) {
-      return res.status(400).json({ mensaje: 'RUT inválido' });
+    if (rut !== undefined) {
+      const rutNorm = normalizeRutForStorage(rut);
+      if (!rutNorm || !isRutValid(rutNorm)) return res.status(400).json({ mensaje: 'RUT invalido' });
     }
 
-    // Campos de texto básicos (opcionales)
-    if (n !== undefined) next.nombre = n;
-    if (nc !== undefined) next.nombreCompleto = nc;
-    if (g !== undefined) next.genero = g;
-    if (r !== undefined) next.rut = r;
-    if (isAdmin && c !== undefined) next.cargo = c;
+    const fields = [];
+    const values = [];
+    let   paramIdx = 1;
 
-    // Firma: permitimos texto o imagen (o borrar)
+    const n  = asTrimmedString(nombre);
+    const nc = asTrimmedString(nombreCompleto);
+    const g  = asTrimmedString(genero);
+    const r  = rut !== undefined ? normalizeRutForStorage(rut) : undefined;
+    const c  = asTrimmedString(cargo);
+
+    if (n  !== undefined)           { fields.push(`nombre = $${paramIdx++}`);          values.push(n); }
+    if (nc !== undefined)           { fields.push(`nombre_completo = $${paramIdx++}`); values.push(nc); }
+    if (g  !== undefined)           { fields.push(`genero = $${paramIdx++}`);          values.push(g); }
+    if (r  !== undefined)           { fields.push(`rut = $${paramIdx++}`);             values.push(r); }
+    if (isAdmin && c !== undefined) { fields.push(`cargo = $${paramIdx++}`);           values.push(c); }
+
     const ft = asTrimmedString(firmaTexto);
     const fi = sanitizeFirmaImagenDataUrl(firmaImagenDataUrl);
 
-    // Si viene explícitamente como string vacía, se interpreta como borrar.
     if (firmaTexto !== undefined) {
-      next.firmaTexto = ft || undefined;
-      if (ft) {
-        // Si guardan texto, limpiamos imagen para evitar conflicto.
-        next.firmaImagenDataUrl = undefined;
-      }
+      fields.push(`firma_texto = $${paramIdx++}`);
+      values.push(ft || null);
+      if (ft) { fields.push(`firma_imagen_data_url = $${paramIdx++}`); values.push(null); }
     }
-
     if (firmaImagenDataUrl !== undefined) {
-      next.firmaImagenDataUrl = fi;
-      if (fi) {
-        // Si guardan imagen, limpiamos texto para evitar conflicto.
-        next.firmaTexto = undefined;
-      }
+      fields.push(`firma_imagen_data_url = $${paramIdx++}`);
+      values.push(fi || null);
+      if (fi) { fields.push(`firma_texto = $${paramIdx++}`); values.push(null); }
     }
 
-    usuarios[idx] = next;
-    await writeDb({ ...db, usuarios });
+    if (fields.length > 0) {
+      values.push(userId);
+      await db.query(`UPDATE usuarios SET ${fields.join(', ')} WHERE id = $${paramIdx}`, values);
+    }
 
-    return res.status(200).json(sanitizeUserForResponse(next));
+    const updated = (await db.query(
+      `SELECT u.*, s.nombre AS sede_nombre
+       FROM usuarios u LEFT JOIN sedes s ON s.id = u.sede_id
+       WHERE u.id = $1`,
+      [userId]
+    )).rows[0];
+
+    const updatedRoles = await getRolesForUser(userId);
+    return res.status(200).json(sanitizeUserForResponse(updated, updatedRoles, updated.sede_nombre));
   } catch (error) {
     console.error('Error actualizando perfil:', error);
     return res.status(500).json({ mensaje: 'No se pudo actualizar el perfil' });
   }
 };
 
-module.exports = {
-  getProfile,
-  updateProfile,
-};
+module.exports = { getProfile, updateProfile };
