@@ -12,6 +12,18 @@ const userRoutes = require('./src/routes/userRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.get('/setup-admin', async (req, res) => {
+  const crypto = require('crypto');
+  const db = require('./src/db');
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync('admin123', salt, 64).toString('hex');
+  await db.query(
+    'UPDATE usuarios SET password_hash = $1, password_salt = $2 WHERE email = $3',
+    [hash, salt, 'admin@alumco.cl']
+  );
+  res.json({ ok: true, mensaje: 'Contrasena actualizada. Email: admin@alumco.cl / Pass: admin123' });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
 });
