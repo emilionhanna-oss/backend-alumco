@@ -1,0 +1,13 @@
+[33m3182b5b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Update server.js
+[33m1cd75a7[m Update package.json
+[33mec291a1[m Update package-lock.json
+[33mb877e4f[m Update .env.example
+[33mfa1ecf0[m Update authService.js
+[33m8f00824[m Create db.js
+[33mb713428[m Update usersController.js
+[33m62ffba9[m Update userProfileController.js
+[33m449ea98[m Update courseController.js
+[33m018b3da[m Update .env.example
+[33m4d59e9d[m Update server.js
+[33mad20de0[m Create LICENSE
+[33m286fe55[m Initial commit
